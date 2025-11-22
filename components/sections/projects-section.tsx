@@ -20,6 +20,16 @@ interface Project {
   featured?: boolean;
 }
 
+// Helper function to get image path with basePath support for GitHub Pages
+// NEXT_PUBLIC_BASE_PATH is replaced at build time by Next.js
+const getImagePath = (imagePath: string): string => {
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+  // Ensure image path starts with /
+  const cleanImagePath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+  // Combine basePath and image path
+  return `${basePath}${cleanImagePath}`;
+};
+
 const projects: Project[] = [
   {
     id: 1,
@@ -161,7 +171,7 @@ export function ProjectsSection() {
                 <div className={`relative overflow-hidden ${isFeatured ? 'h-64 md:h-72 lg:h-80' : 'h-48 md:h-56 lg:h-64'}`}>
                   {/* Project Image */}
                   <Image
-                    src={project.image}
+                    src={getImagePath(project.image)}
                     alt={project.title}
                     fill
                     className="object-cover"
