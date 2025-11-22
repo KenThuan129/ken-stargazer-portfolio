@@ -76,7 +76,11 @@ jobs:
           NODE_OPTIONS: '--max-old-space-size=4096'
           NEXT_PRIVATE_SKIP_ACTION_TELEMETRY: '1'
           # Turbopack is disabled in package.json script
-        run: npm run export
+        run: |
+          echo "Repository name: ${{ github.event.repository.name }}"
+          echo "Base path will be: /${{ github.event.repository.name }}"
+          echo "NEXT_PUBLIC_BASE_PATH: $NEXT_PUBLIC_BASE_PATH"
+          npm run export
 
       - name: Restore API routes
         if: always()
@@ -98,6 +102,9 @@ jobs:
           fi
           echo "Build verification successful"
           ls -la out/ | head -20
+          # Create .nojekyll file to prevent Jekyll processing
+          touch out/.nojekyll
+          echo "Created .nojekyll file"
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
