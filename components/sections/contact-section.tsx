@@ -2,7 +2,8 @@
 
 import { motion } from 'framer-motion';
 import { useInView } from 'framer-motion';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import emailjs from '@emailjs/browser';
 import { Mail, Send, Copy, Check, Github, Linkedin, Twitter, Instagram } from 'lucide-react';
 import { MagneticButton } from '../magnetic-button';
 
@@ -26,6 +27,18 @@ export function ContactSection() {
 
   const email = 'ken.stargazer.12092003@gmail.com';
 
+  // EmailJS configuration - Add these to your .env.local file
+  const EMAILJS_SERVICE_ID = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID || '';
+  const EMAILJS_TEMPLATE_ID = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || '';
+  const EMAILJS_PUBLIC_KEY = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || '';
+
+  useEffect(() => {
+    // Initialize EmailJS with your public key
+    if (EMAILJS_PUBLIC_KEY) {
+      emailjs.init(EMAILJS_PUBLIC_KEY);
+    }
+  }, [EMAILJS_PUBLIC_KEY]);
+
   const copyEmail = async () => {
     try {
       await navigator.clipboard.writeText(email);
@@ -41,29 +54,41 @@ export function ContactSection() {
     setIsSubmitting(true);
     setSubmitStatus('idle');
 
+    // Check if EmailJS is configured
+    if (!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_PUBLIC_KEY) {
+      console.error('EmailJS is not configured. Please add NEXT_PUBLIC_EMAILJS_* variables to .env.local');
+      setSubmitStatus('error');
+      setIsSubmitting(false);
+      setTimeout(() => setSubmitStatus('idle'), 5000);
+      return;
+    }
+
     try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      // Send email using EmailJS
+      const result = await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        {
+          from_name: formData.name,
+          from_email: formData.email,
+          message: formData.message,
+          to_email: email,
         },
-        body: JSON.stringify(formData),
-      });
+        EMAILJS_PUBLIC_KEY
+      );
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send message');
+      if (result.text === 'OK') {
+        // Success
+        setSubmitStatus('success');
+        setFormData({ name: '', email: '', message: '' });
+        
+        // Reset success message after 5 seconds
+        setTimeout(() => {
+          setSubmitStatus('idle');
+        }, 5000);
+      } else {
+        throw new Error('Email service returned an error');
       }
-
-      // Success
-      setSubmitStatus('success');
-      setFormData({ name: '', email: '', message: '' });
-      
-      // Reset success message after 5 seconds
-      setTimeout(() => {
-        setSubmitStatus('idle');
-      }, 5000);
     } catch (error) {
       console.error('Error sending message:', error);
       setSubmitStatus('error');
